@@ -1,0 +1,17 @@
+
+note-band --- note collection tool instead of rubber band
+
+This packages consists of perl scripts.
+They requires DBM::Deep, Tk and Image::Magick .
+
+Tyical running steps are following:
+
+% ./sweepkeys.pl  ~/Dropbox/SHOT\ NOTE/
+% ./sweepvals.pl | tee vals.log
+% ./u1.pl
+
+To remove .db files makes cleaning of data-base for this program.
+Currently 7 files (pfs.db, dfs.db, dfn.db, doc.db, noc.db, grp.db and ar.db)
+are exist.
+
+
