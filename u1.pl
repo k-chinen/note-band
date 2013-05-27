@@ -47,8 +47,8 @@ sub update_datecolor {
     $xm = substr($refdate, 2, 2);
     $xd = substr($refdate, 4, 2);
     my $epoch = timelocal(0,0,0,$xd, $xm-1, $xy+2000-1900);
-    print "$xy $xm $xd\n";
-    print "epoch $epoch vs $ut -> ".($ut-$epoch)."\n";
+#    print "$xy $xm $xd\n";
+#    print "epoch $epoch vs $ut -> ".($ut-$epoch)."\n";
 
     undef %date2color;
 
@@ -333,7 +333,7 @@ sub verify_ht {
     if($vocd) {  $y++; }
     if($vocn) {  $y++; }
 
-    print "verify_ht: y $y\n";
+#    print "verify_ht: y $y\n";
     $shtht = $shttd + $y*$shtvg + $shtct;
 }
 
@@ -468,24 +468,24 @@ sub spick {
     my($id,$cv,$k,$x,$y) = @_;
     my @co;
     my @bb;
-    print "spick $k\n";
+#    print "spick $k\n";
 
 #   foreach my $i ($cv->itemcget($k, -members)) {
 #       print "  i $i\n";
 #   }
 
     @co = $cv->coords($k);
-    print "co $co[0], $co[1], $co[2], $co[3]\n";
-    print "x $x, y $y\n";
+#    print "co $co[0], $co[1], $co[2], $co[3]\n";
+#    print "x $x, y $y\n";
     @bb = $cv->bbox($k);
-    print "bb $bb[0], $bb[1], $bb[2], $bb[3]\n";
+#    print "bb $bb[0], $bb[1], $bb[2], $bb[3]\n";
 
     $__ix = $x-$bb[0];
     $__iy = $y-$bb[1];
-    print "ix $__ix iy $__iy\n";
+#    print "ix $__ix iy $__iy\n";
 
     if($__iy>=$shtht-$shtct&&$__iy<=$shtht) {
-        print "push?\n";
+#        print "push?\n";
         my $p;
         $p = &arpos(\@imgstack, $k);
         if($p>=0) {
@@ -523,7 +523,7 @@ sub smove {
     $nx = $x-$__ix;
     $ny = $y-$__iy;
 
-    print "nx $nx ny $ny\n";
+#    print "nx $nx ny $ny\n";
     $cv->coords($k, $nx, $ny);
 }
 
@@ -569,7 +569,7 @@ sub closeleft {
     $maxi = '';
     foreach $i (@items) {
         @co = $cv->coords($i);
-        print "$i coords ".(join(":",@co))."\n";
+#        print "$i coords ".(join(":",@co))."\n";
         if($co[0]>$maxx) {
             $maxx = $co[0];
             $maxi = $i;
@@ -640,8 +640,8 @@ sub closeright {
 
 sub srele {
     my($id,$cv,$k,$x,$y) = @_;
-    print "srele $k\n";
-    print "  x $x y $y\n";
+#    print "srele $k\n";
+#    print "  x $x y $y\n";
     my ($cx, $cy);  # center of sheet
     my @bb;
     my @nearitems;
@@ -669,13 +669,13 @@ sub srele {
     $cx = ($bb[0]+$bb[2])/2;
     $cy = ($bb[1]+$bb[3])/2;
 
-    print "cx $cx cy $cy\n";
+#    print "cx $cx cy $cy\n";
 
 #    $lk = &closeleft($cv,$k,$shtwd,$cx,$cy,$srw,$srh);
 #    $rk = &closeright($cv,$k,$shtwd,$cx,$cy,$srw,$srh);
     $lk =  &closeleft($cv,$k,0,$cx,$cy,$srw,$srh);
     $rk = &closeright($cv,$k,0,$cx,$cy,$srw,$srh);
-    print "lk $lk rk $rk\n";
+#    print "lk $lk rk $rk\n";
 
     $si = -1;
     $ri = -1;
@@ -692,14 +692,14 @@ sub srele {
         }
     }
 
-    print "si $si li $li ri $ri\n";
+#    print "si $si li $li ri $ri\n";
 
     if($si==-1) {
-        print "strange 0--\n";
+#        print "strange 0--\n";
         goto ENDPROC;
     }
     if($li==-1 && $ri==-1) {
-        print "strange -00\n";
+#        print "strange -00\n";
         goto ENDPROC;
     }
 
@@ -717,7 +717,7 @@ sub srele {
         }
     }
 
-    print "li $li ri $ri\n";
+#    print "li $li ri $ri\n";
 
     if($li==-1) {
 #print "A\n";
@@ -753,11 +753,11 @@ ENDPROC:
 
 sub shead {
     my($id,$cv,$k,$x,$y) = @_;
-    print "shead k |$k| x $x y $y\n";
+#    print "shead k |$k| x $x y $y\n";
 }
 sub stail {
     my($id,$cv,$k,$x,$y) = @_;
-    print "stail \n";
+#    print "stail \n";
 }
 
 
@@ -1052,7 +1052,7 @@ sub decotline {
 
     $left = $$nl;
     if($left<0 && $len>0) {
-print "FIRST\n";
+#print "FIRST\n";
         $left = 0;
         $$nl = 0;
     }
@@ -1185,21 +1185,21 @@ sub imgpush {
     my($id,$cv,$k,$x,$y) = @_;
     my @co;
     my @bb;
-    print "imgpush $k\n";
+#    print "imgpush $k\n";
 
     @co = $cv->coords($k);
-    print "co $co[0], $co[1], $co[2], $co[3]\n";
-    print "x $x, y $y\n";
+#    print "co $co[0], $co[1], $co[2], $co[3]\n";
+#    print "x $x, y $y\n";
     @bb = $cv->bbox($k);
-    print "bb $bb[0], $bb[1], $bb[2], $bb[3]\n";
+#    print "bb $bb[0], $bb[1], $bb[2], $bb[3]\n";
 
     $__ix = $x-$bb[0];
     $__iy = $y-$bb[1];
-    print "ix $__ix iy $__iy\n";
+#    print "ix $__ix iy $__iy\n";
 
 #   print "imgstack ".(join("/",@imgstack))."\n";
     &uniqpush(\@imgstack, $k);
-    print "imgstack ".(join("/",@imgstack))."\n";
+#    print "imgstack ".(join("/",@imgstack))."\n";
 
     &redraw;
 }
@@ -1207,7 +1207,7 @@ sub imgpush {
 sub imgremove {
     my($id,$cv,$k,$x,$y) = @_;
     my $pos;
-    print "imgremove $k\n";
+#    print "imgremove $k\n";
     $pos = &arpos(\@imgstack,$k);
     if($pos>=0) {
         splice(@imgstack,$pos,1);
@@ -1219,21 +1219,21 @@ sub imgpick {
     my($id,$cv,$k,$x,$y) = @_;
     my @co;
     my @bb;
-    print "imgpick $k\n";
+#    print "imgpick $k\n";
 
 #   foreach my $i ($cv->itemcget($k, -members)) {
 #       print "  i $i\n";
 #   }
 
     @co = $cv->coords($k);
-    print "co $co[0], $co[1], $co[2], $co[3]\n";
-    print "x $x, y $y\n";
+#    print "co $co[0], $co[1], $co[2], $co[3]\n";
+#    print "x $x, y $y\n";
     @bb = $cv->bbox($k);
-    print "bb $bb[0], $bb[1], $bb[2], $bb[3]\n";
+#    print "bb $bb[0], $bb[1], $bb[2], $bb[3]\n";
 
     $__ix = $x-$bb[0];
     $__iy = $y-$bb[1];
-    print "ix $__ix iy $__iy\n";
+#    print "ix $__ix iy $__iy\n";
 
     &imgremove($id,$cv,$k,$x,$y);
 
@@ -1247,8 +1247,8 @@ sub imgpick {
 
 sub iscalechange {
     my($v) = @_;
-    print "iscalechange $v\n";
-    print "iscale $iscale\n";
+#    print "iscalechange $v\n";
+#    print "iscale $iscale\n";
 
     if($iscale==0) {
         $imgwd = 128;
@@ -1481,6 +1481,7 @@ sub sort_byfn {
 
 sub scan {
     print "scan\n";
+    print "not implemented, yet\n";
 }
 
 sub redrawR {
@@ -1503,14 +1504,14 @@ sub findfirst {
 
 #   $ljmsg->configure(-text=>'');
 
-print "jumpnext: $jmpdate\n";
+#print "jumpnext: $jmpdate\n";
     $i = 0;
     $p = -1;
     foreach $k (@ar) {
         $xfn = $dfn{$k};
         ($xfnd, $dmy) = split(/_/, $xfn);
         if($xfnd eq $jmpdate) {
-            print "FOUND $i $k\n";
+ #           print "FOUND $i $k\n";
             $p = $i;
             last;
         }
@@ -1537,14 +1538,14 @@ sub qfindprev {
     my $dmy;
     my $i;
     my $p;
-print "qfundprev: $rdv\n";
+#print "qfundprev: $rdv\n";
     $p = -1;
     for($i=$ledge-1;$i>=0;$i--) {
         $k = $ar[$i];
         $xfn = $dfn{$k};
         ($xfnd, $dmy) = split(/_/, $xfn);
         if($xfnd eq $rdv) {
-            print "FOUND $i $k\n";
+#            print "FOUND $i $k\n";
             $p = $i;
             last;
         }
@@ -1560,14 +1561,14 @@ sub qfindnext {
     my $dmy;
     my $i;
     my $p;
-print "qfindnext: $rdv\n";
+#print "qfindnext: $rdv\n";
     $p = -1;
     for($i=$ledge+1;$i<=$#ar;$i++) {
         $k = $ar[$i];
         $xfn = $dfn{$k};
         ($xfnd, $dmy) = split(/_/, $xfn);
         if($xfnd eq $rdv) {
-            print "FOUND $i $k\n";
+#            print "FOUND $i $k\n";
             $p = $i;
             last;
         }
@@ -1585,7 +1586,7 @@ sub jumpnext {
     my $p;
     my $i;
 
-print "jumpnext: $jmpdate\n";
+#print "jumpnext: $jmpdate\n";
 #   $ljmsg->configure(-text=>'');
 
     $xfnd = $jmpdate;
@@ -1628,7 +1629,7 @@ sub jumpprev {
     my $p;
     my $i;
 
-print "jumpprev: $jmpdate\n";
+#print "jumpprev: $jmpdate\n";
 #   $ljmsg->configure(-text=>'');
 
     $xfnd = $jmpdate;
@@ -1672,7 +1673,7 @@ sub Xjumpprev {
     my $dmy;
     my $i;
     my $p;
-print "jumpprev: $jmpdate\n";
+#print "jumpprev: $jmpdate\n";
 #   $ljmsg->configure(-text=>'');
     $i = 0;
     $p = -1;
@@ -1681,7 +1682,7 @@ print "jumpprev: $jmpdate\n";
         $xfn = $dfn{$k};
         ($xfnd, $dmy) = split(/_/, $xfn);
         if($xfnd eq $jmpdate) {
-            print "FOUND $i $k\n";
+#            print "FOUND $i $k\n";
             $p = $i;
             last;
         }

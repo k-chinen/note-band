@@ -81,20 +81,43 @@ foreach $k (keys %pfs) {
     }
     ($xdfnD,$dmy) = split(/_/, $xdfn);
 
-    if(defined $noc{$k} && defined $doc{$k}) {
-        $xnoc = $noc{$k};
-        $xdoc = $doc{$k};
-        $xndoc = $noc{$k}.",".$doc{$k};
+    if(defined $doc{$k}) {
+print "PASS A\n";
+#        $xnoc = $noc{$k};
+#        $xdoc = $doc{$k};
+#        $xndoc = $noc{$k}.",".$doc{$k};
+        $xndoc = $doc{$k};
     }
     else {
+print "PASS B\n";
         if($ps[0] ne '') {
+print "PASS B1\n";
             $xndoc = &ap($ps[0], 100);
             $xndoc =~ s/w/0/g;
 
-            $doc{$k} = $xndoc;
-
-            ($xnoc, $xdoc) = split(/,/,  $xndoc);
+#           ($xnoc, $xdoc) = split(/,/,  $xndoc);
+#	    $doc{$k} = $xdoc;
+#	    $noc{$k} = $xnoc;
+           ($xnoc, $xdoc) = split(/,/,  $xndoc);
+	    $doc{$k} = $xndoc;
         }
+	else {
+print "PASS B2\n";
+	my $oqk='';
+	    if(defined $noc{$k}) {
+		$oqk .= 'N';
+	    }
+	    else {
+		$oqk .= " ";
+	    }
+	    if(defined $doc{$k}) {
+		$oqk .= 'D';
+	    }
+	    else {
+		$oqk .= " ";
+	    }
+print "     $oqk\n";
+	}
     }
 
     $msg = '';

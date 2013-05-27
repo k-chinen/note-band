@@ -3,7 +3,9 @@ note-band --- note collection tool instead of rubber band
 
 This packages consists of perl scripts.
 They requires DBM::Deep, Tk and Image::Magick .
+Use 'cpan' to install them.
 
+I tested these program on CentOS 6.4 and MacOS 10.8 .
 Tyical running steps are following:
 
 % ./sweepkeys.pl  ~/Dropbox/SHOT\ NOTE/
