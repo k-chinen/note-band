@@ -47,8 +47,8 @@ sub update_datecolor {
     $xm = substr($refdate, 2, 2);
     $xd = substr($refdate, 4, 2);
     my $epoch = timelocal(0,0,0,$xd, $xm-1, $xy+2000-1900);
-#    print "$xy $xm $xd\n";
-#    print "epoch $epoch vs $ut -> ".($ut-$epoch)."\n";
+    print "$xy $xm $xd\n";
+    print "epoch $epoch vs $ut -> ".($ut-$epoch)."\n";
 
     undef %date2color;
 
@@ -153,6 +153,10 @@ my $db_noc = tie %noc, 'DBM::Deep', 'noc.db';
 my %grp;
 my $db_grp = tie %grp, 'DBM::Deep', 'grp.db'; 
 
+### XXX
+my %dah;
+my $db_dah = tie %dah, 'DBM::Deep', 'dah.db'; 
+
 
 my @ar;
 my $db_ar = tie @ar, 'DBM::Deep', 'ar.db';
@@ -180,7 +184,7 @@ sub data_verify {
 
 sub ar_init {
     $db_ar->clear();
-    if(1){
+    if(0){
     my $k;
         $k = 'MD5:1';
 #       $k = 'MD5:225d803e418946e7c24f5fe18cf5227a';
@@ -232,14 +236,16 @@ my $shttmax = -1;
 
 my $shtht_default = 150;
 my $shtht   = 150;
-my $shtwd   = 65;
+my $shtwd   = 75;
 my $shtdp   = 50;
 my $shttd   = 20;
 my $shtvg   = 14;
-my $shtga   = 40;
+my $shtga   = 25;
 my $shtct   = 20;
 my $shtaj   = 3;
 my $shtlm   = 5;
+my $shtqw   = 10;
+my $shtmw   = 5;
 
 my $vbug=0;
 
@@ -279,9 +285,13 @@ my $dmy = $jline->Checkbutton(-text=>'veryloose',-variable=>\$jumploose,
 #my $brebuild = $cline->Button(-text=>"rebuild", -command=>\&rebuild)->pack(-side=>'left');
 my $bscan = $cline->Button(-text=>"scan", -command=>\&scan)->pack(-side=>'left');
 my $bimportbyfs = $cline->Button(-text=>"import by fs", -command=>\&import_byfs)->pack(-side=>'left');
+my $bsortbyah = $cline->Button(-text=>"sort by ah", -command=>\&sort_byah)->pack(-side=>'left');
+#my $bsortbyahnd = $cline->Button(-text=>"sort by ah no-date", -command=>\&sort_byahnd)->pack(-side=>'left');
+#my $bsortbyahdn = $cline->Button(-text=>"sort by ah date-no", -command=>\&sort_byahdn)->pack(-side=>'left');
 my $bsortbyfn = $cline->Button(-text=>"sort by fn", -command=>\&sort_byfn)->pack(-side=>'left');
-my $bsortbyocdn = $cline->Button(-text=>"sort by date-no of ocr", -command=>\&sort_byocdn)->pack(-side=>'left');
-my $bsortbyocnd = $cline->Button(-text=>"sort by no-date of ocr", -command=>\&sort_byocnd)->pack(-side=>'left');
+#my $bsortbyocdn = $cline->Button(-text=>"sort by date-no of ocr", -command=>\&sort_byocdn)->pack(-side=>'left');
+#my $bsortbyocnd = $cline->Button(-text=>"sort by no-date of ocr", -command=>\&sort_byocnd)->pack(-side=>'left');
+my $bsortbyoc = $cline->Button(-text=>"sort by ocr", -command=>\&sort_byoc)->pack(-side=>'left');
 
 my $qvbug  = $cline->Checkbutton(-text=>'debug',-variable=>\$vbug,-command=>[\&tgv,\$vbug], -relief=>'sunken')->pack(-side=>'right');
 
@@ -301,6 +311,8 @@ my $dmy = $dline->Checkbutton(-text=>'1m/7d',-variable=>\$datecolorstyle,
     -onvalue=>'1',
     -command=>[\&datecolorchange])->pack(-side=>'left');
 
+my $datepriority=1;
+
 my $vfnd=1;
 my $vfnt=0;
 my $vfsd=0;
@@ -318,12 +330,22 @@ my $qvocd  = $vsline->Checkbutton(-text=>'OCD',-variable=>\$vocd,-command=>[\&tg
 my $qvocn  = $vsline->Checkbutton(-text=>'OCN',-variable=>\$vocn,-command=>[\&tgv,\$vocn])->pack(-side=>'left');
 
 
+#my $vpline = $base->Frame->pack(-side=>'top', -fill=>'x');
+my $vpline = $vsline;
+my $dmy    = $vpline->Label(-width=>7, -text=>'')->pack(-side=>'left');
+my $dmy    = $vpline->Label(-width=>7, -text=>'priority')->pack(-side=>'left');
+my $qvpriority_no    = $vpline->Radiobutton(-text=>'no-date',-variable=>\$datepriority,-value=>0)->pack(-side=>'left');
+my $qvpriority_date  = $vpline->Radiobutton(-text=>'date-no',-variable=>\$datepriority,-value=>1)->pack(-side=>'left');
+
+
+
 my $dmy = $jline->Button(-text=>"redraw",   -command=>\&redrawR)->pack(-side=>'right');
 
 
 sub verify_ht {
     my $y;
     $y = 1;
+    $y += 3;    # XXX
     if($vfnd) {  $y++; }
     if($vfnt) {  $y++; }
     if($vfsd || $vfst) {     $y++; }
@@ -333,7 +355,7 @@ sub verify_ht {
     if($vocd) {  $y++; }
     if($vocn) {  $y++; }
 
-#    print "verify_ht: y $y\n";
+    print "verify_ht: y $y\n";
     $shtht = $shttd + $y*$shtvg + $shtct;
 }
 
@@ -463,67 +485,206 @@ sub slev {
 }
 
 
+sub conv_CLah {
+    my($k) = @_;
+    print "CLah $k\n";
+    if(!defined $dfn{$k}) {
+        print "ignore key\n";
+        return -1;
+    }
+    undef $dah{$k};
+}
+
+sub conv_fn2ah {
+    my($k) = @_;
+    print "fn2ah $k\n";
+    my $tmpd;
+
+    if(!defined $dfn{$k}) {
+        print "ignore key\n";
+        return -1;
+    }
+#   $dah{$k} = $dfn{$k};
+#   $dah{$k} =~ s/_/,/g;
+    
+    ($tmpd) = split(/_/, $dfn{$k});
+    $dah{$k} = "9999,".$tmpd;
+    
+}
+
+sub conv_oc2ah {
+    my($k) = @_;
+    print "oc2ah $k\n";
+
+    if(!defined $doc{$k}) {
+        print "ignore key\n";
+        return -1;
+    }
+    $dah{$k} = $doc{$k};
+}
+
+sub markfn2ah {
+    my($id,$cv,$k,$x,$y) = @_;
+
+    &conv_fn2ah($k);
+}
+
+sub markoc2ah {
+    my($id,$cv,$k,$x,$y) = @_;
+
+    &conv_oc2ah($k);
+}
+
+
+my $aim;
+
 
 sub spick {
     my($id,$cv,$k,$x,$y) = @_;
     my @co;
     my @bb;
-#    print "spick $k\n";
+    my $r=$shtlm*3;
+    print "spick $k\n";
+    print "aim $aim\n";
 
 #   foreach my $i ($cv->itemcget($k, -members)) {
 #       print "  i $i\n";
 #   }
 
     @co = $cv->coords($k);
-#    print "co $co[0], $co[1], $co[2], $co[3]\n";
-#    print "x $x, y $y\n";
+    print "co $co[0], $co[1], $co[2], $co[3]\n";
+    print "x $x, y $y\n";
     @bb = $cv->bbox($k);
-#    print "bb $bb[0], $bb[1], $bb[2], $bb[3]\n";
+    print "bb $bb[0], $bb[1], $bb[2], $bb[3]\n";
 
     $__ix = $x-$bb[0];
     $__iy = $y-$bb[1];
-#    print "ix $__ix iy $__iy\n";
+    print "ix $__ix iy $__iy\n";
 
-    if($__iy>=$shtht-$shtct&&$__iy<=$shtht) {
-#        print "push?\n";
-        my $p;
-        $p = &arpos(\@imgstack, $k);
-        if($p>=0) {
-            &imgremove($id,$cv,$k,$x,$y);
+    {
+
+        my $dmy= $cv->create('rectangle',$x-$r,$y-$r,$x+$r,$y+$r,
+                -tag=>"brange");
+
+        $cv->raise("brange");
+
+
+        my @qidlist = $cv->find('closest', $x,$y);
+        my $qid;
+        my @qtaglist;
+        my $qtag;
+        my @nearlist;
+        my $qc;
+        my $rr;
+        $rr = $r*$r;
+        $qc=0;
+        @nearlist = ();
+        foreach $qid (@qidlist) {
+            print "qid closest $qid\n";
+            @qtaglist = $cv->gettags($qid);
+            print "\ttag ".(join("|",@qtaglist))."\n";
+
+            my %dist;
+
+            foreach $qtag (@qtaglist) {
+                undef %dist;
+
+                if($qtag eq 'current') {
+                    next;
+                }
+
+                my $mid;
+                my @memlist;
+                @memlist = $cv->itemcget($qtag, -members);
+                foreach $mid (@memlist) {
+                    my($llx, $lly, $urx, $ury) = $cv->coords($mid);
+                    my($gx,$gy) = ( ($llx+$urx)/2, ($lly+$ury)/2);
+                    my $dd;
+                    $dd = ($gx-$x)*($gx-$x) + ($gy-$y)*($gy-$y);
+                    if($dd<=$rr) {
+                        $dist{$mid} = $dd;
+                    }
+                }
+
+                my @dorder = sort {$dist{$a}<=>$dist{$b}} keys %dist;
+                my $chg = 0;
+
+                print "- - -\n";
+                foreach $mid (@dorder) {
+                    my @mtaglist;
+                    my $mtag;
+
+                    print "mid $mid dist $dist{$mid}\n";
+
+                    @mtaglist = $cv->gettags($mid);
+                    print "\t\ttag ".(join("/",@mtaglist))."\n";
+
+                    foreach $mtag (@mtaglist) {
+                        if($mtag eq 'CLah') {
+                            &conv_CLah($qtag);
+                            $chg++;
+                        }
+                        if($mtag eq 'fn2ah') {
+                            &conv_fn2ah($qtag);
+                            $chg++;
+                        }
+                        if($mtag eq 'oc2ah') {
+                            &conv_oc2ah($qtag);
+                            $chg++;
+                        }
+
+                        if($mtag eq 'noapp') {
+                            &imgpush($id,$cv,$k,$x,$y);
+                            $chg++;
+                        }
+                        if($mtag eq 'app') {
+                            &imgremove($id,$cv,$k,$x,$y);
+                            $chg++;
+                        }
+                    }
+
+                    if($chg>0) {
+                        &redraw;
+                    }
+                }
+
+            }
+            $qc++;
+
         }
-        else {
-            &imgpush($id,$cv,$k,$x,$y);
+        if($qc==0) {
+            print "no item(s)\n";
         }
-        return;
+
     }
+    
 
-
- if(0) {
-    $cv->create('oval', $co[0], $co[1], $co[2], $co[3],
-            -fill=>'gray75', -outline=>'gray75', -tag=>"imark");
- }
- if(1) {
     $cv->create('rectangle', $bb[0], $bb[1], $bb[2], $bb[3],
             -fill=>'gray75', -outline=>'gray75', -tag=>"imark");
     $cv->raise('imark');
- }
-
-#    $cv->itemconfigure($k,-outline=>'magenta');
     $cv->raise($k);
+
+    $aim = $k;
 }
 
 
 
 sub smove {
     my($id,$cv,$k,$x,$y) = @_;
-#    print "smove $k x $x y $y\n";
+    print "smove $k x $x y $y\n";
+    print "aim $aim\n";
+
+    if($aim eq '') {
+        return;
+    }
+
     my $nx;
     my $ny;
 
     $nx = $x-$__ix;
     $ny = $y-$__iy;
 
-#    print "nx $nx ny $ny\n";
+    print "nx $nx ny $ny\n";
     $cv->coords($k, $nx, $ny);
 }
 
@@ -569,7 +730,7 @@ sub closeleft {
     $maxi = '';
     foreach $i (@items) {
         @co = $cv->coords($i);
-#        print "$i coords ".(join(":",@co))."\n";
+        print "$i coords ".(join(":",@co))."\n";
         if($co[0]>$maxx) {
             $maxx = $co[0];
             $maxi = $i;
@@ -640,8 +801,12 @@ sub closeright {
 
 sub srele {
     my($id,$cv,$k,$x,$y) = @_;
-#    print "srele $k\n";
-#    print "  x $x y $y\n";
+    print "srele $k\n";
+    print "aim $aim\n";
+    print "  x $x y $y\n";
+    if($aim eq '') {
+        return;
+    }
     my ($cx, $cy);  # center of sheet
     my @bb;
     my @nearitems;
@@ -669,13 +834,13 @@ sub srele {
     $cx = ($bb[0]+$bb[2])/2;
     $cy = ($bb[1]+$bb[3])/2;
 
-#    print "cx $cx cy $cy\n";
+    print "cx $cx cy $cy\n";
 
 #    $lk = &closeleft($cv,$k,$shtwd,$cx,$cy,$srw,$srh);
 #    $rk = &closeright($cv,$k,$shtwd,$cx,$cy,$srw,$srh);
     $lk =  &closeleft($cv,$k,0,$cx,$cy,$srw,$srh);
     $rk = &closeright($cv,$k,0,$cx,$cy,$srw,$srh);
-#    print "lk $lk rk $rk\n";
+    print "lk $lk rk $rk\n";
 
     $si = -1;
     $ri = -1;
@@ -692,14 +857,14 @@ sub srele {
         }
     }
 
-#    print "si $si li $li ri $ri\n";
+    print "si $si li $li ri $ri\n";
 
     if($si==-1) {
-#        print "strange 0--\n";
+        print "strange 0--\n";
         goto ENDPROC;
     }
     if($li==-1 && $ri==-1) {
-#        print "strange -00\n";
+        print "strange -00\n";
         goto ENDPROC;
     }
 
@@ -717,7 +882,7 @@ sub srele {
         }
     }
 
-#    print "li $li ri $ri\n";
+    print "li $li ri $ri\n";
 
     if($li==-1) {
 #print "A\n";
@@ -753,11 +918,11 @@ ENDPROC:
 
 sub shead {
     my($id,$cv,$k,$x,$y) = @_;
-#    print "shead k |$k| x $x y $y\n";
+    print "shead k |$k| x $x y $y\n";
 }
 sub stail {
     my($id,$cv,$k,$x,$y) = @_;
-#    print "stail \n";
+    print "stail \n";
 }
 
 
@@ -839,13 +1004,60 @@ sub markno {
     push(@$nar, $id);
 }
 
+sub mkcrosssym {
+    my($refar, $cv, $k, $x, $y, $w, $h, $xtag) = @_;
+    my $id1;
+    $id1 = $cv->create('rectangle',
+            $x,    $y+$h/3,
+            $x+$w, $y-$h*2/3,
+            -fill=>'white', -outline=>'black', -tag=>$xtag);
+    $cv->raise($id1);
+    push(@{$refar}, $id1);
+
+    $id1 = $cv->create('line',
+            $x,    $y+$h/3,
+            $x+$w, $y-$h*2/3);
+    $cv->raise($id1);
+    push(@{$refar}, $id1);
+
+    $id1 = $cv->create('line',
+            $x,    $y-$h*2/3,
+            $x+$w, $y+$h/3);
+    $cv->raise($id1);
+    push(@{$refar}, $id1);
+}
+
+sub mkupsym {
+    my($refar, $cv, $k, $x, $y, $w, $h, $xtag) = @_;
+    my $id1;
+    $id1 = $cv->create('rectangle',
+            $x,    $y+$h/3,
+            $x+$w, $y-$h*2/3,
+            -fill=>'white', -outline=>'black', -tag=>$xtag);
+    $cv->raise($id1);
+    push(@{$refar}, $id1);
+
+    $id1 = $cv->create('line',
+            $x+$w/2, $y+$h/3,
+            $x+$w/2, $y-$h*2/3);
+    $cv->raise($id1);
+    push(@{$refar}, $id1);
+
+    $id1 = $cv->create('line',
+            $x,      $y+$h/3-$h/2,
+            $x+$w/2, $y-$h*2/3,
+            $x+$w,   $y+$h/3-$h/2
+            );
+    $cv->raise($id1);
+    push(@{$refar}, $id1);
+}
 
 
 
 my $__n;
 
 sub mkshtsym {
-    my($cv,$x,$y,$k,$rdv) = @_;
+my($cv,$x,$y,$k,$rdv) = @_;
     my $crbody;
     my $cdv;
     my $cid;
@@ -892,36 +1104,98 @@ sub mkshtsym {
 
     $ly = 1;
 
+
     my ($xfnd, $xfnt, $xfsd, $xfst, $xocd, $xocn);
     ($xfnd, $xfnt) = split(/_/, $dfn{$k});
     ($xfsd, $xfst) = split(/_/, $dfs{$k});
     ($xocn, $xocd) = split(/,/, $doc{$k});
 
+#   my ($xahd, $xahn) = ("______", "____");
+    my ($xahd, $xahn) = ("noDate", "noNo");
+    if(defined $dah{$k})  {
+        ($xahn, $xahd) = split(/,/, $dah{$k});
+    }
+
 #    print "xfnd, xfnt, xfsd, xfst, xocd, xocn\n";
 #    print "$xfnd, $xfnt, $xfsd, $xfst, $xocd, $xocn\n";
 
     if(defined $dfn{$k}) {
-        my $lx;
+        my $qx;
         my $mx;
+        my $lx;
         my $id1;
-        $mx = $x+$shtlm;
-        $lx = $x+$shtlm+$shtlm;
+#       $shtqw = $shtvg;
+        $qx = $x+$shtlm;
+        $mx = $x+$shtlm+$shtqw+2;
+        $lx = $x+$shtlm+$shtqw+2+$shtmw+2;
+
+        my $gg = -$shtvg/2;
+
+        {
+
+  if(0) {
+            $id1 = $cv->create('rectangle',
+                    $qx,        $y-$shtht+$shttd+$shtvg*$ly+$shtvg/3,
+                    $qx+$shtqw, $y-$shtht+$shttd+$shtvg*$ly-$shtvg*2/3,
+                    -fill=>'white', -outline=>'black', -tag=>"CLah");
+            $cv->raise($id1);
+            push(@grs, $id1);
+
+            $id1 = $cv->create('line',
+                    $qx,        $y-$shtht+$shttd+$shtvg*$ly+$shtvg/3,
+                    $qx+$shtqw, $y-$shtht+$shttd+$shtvg*$ly-$shtvg*2/3);
+            $cv->raise($id1);
+            push(@grs, $id1);
+
+            $id1 = $cv->create('line',
+                    $qx,        $y-$shtht+$shttd+$shtvg*$ly-$shtvg*2/3,
+                    $qx+$shtqw, $y-$shtht+$shttd+$shtvg*$ly+$shtvg/3);
+            $cv->raise($id1);
+            push(@grs, $id1);
+  }
+
+            &mkcrosssym(\@grs, $cv, $k,
+                $qx, $y-$shtht+$shttd+$shtvg*$ly, $shtqw, $shtvg, "CLah");
+
+            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                    -text=>$xahd, -anchor=>'w');
+            push(@grs, $id1);
+    &markdate($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xahd, \@grs);
+            $ly++;
+        }
+        {
+            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                    -text=>$xahn, -anchor=>'w');
+            push(@grs, $id1);
+    &markno($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xahn, \@grs);
+            $ly++;
+        }
+        {
+            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                    -text=>' = = = = ', -anchor=>'w');
+            push(@grs, $id1);
+            $ly++;
+        }
         if($vfnd) {
+
+            &mkupsym(\@grs, $cv, $k,
+                $qx, $y-$shtht+$shttd+$shtvg*$ly, $shtqw, $shtvg, "fn2ah");
+
             $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
                     -text=>$xfnd, -anchor=>'w');
             push(@grs, $id1);
-    &markdate($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly, $shtlm, $xfnd, \@grs);
+    &markdate($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xfnd, \@grs);
             $ly++;
         }
         if($vfnt) {
             $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
                     -text=>$xfnt, -anchor=>'w');
             push(@grs, $id1);
-    &marktime($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly, $shtlm, $xfnt, \@grs);
+    &marktime($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xfnt, \@grs);
             $ly++;
         }
         if($vfsd || $vfst) {
-            $id1 = $cv->create('text', $x+$shtlm, $y-$shtht+$shttd+$shtvg*$ly,
+            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
                     -text=>"---", -anchor=>'w');
             push(@grs, $id1);
             $ly++;
@@ -939,23 +1213,26 @@ sub mkshtsym {
             $ly++;
         }
         if($vocd || $vocn) {
-            $id1 = $cv->create('text', $x+$shtlm, $y-$shtht+$shttd+$shtvg*$ly,
+            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
                     -text=>"---", -anchor=>'w');
             push(@grs, $id1);
             $ly++;
         }
         if($vocd) {
+            &mkupsym(\@grs, $cv, $k,
+                $qx, $y-$shtht+$shttd+$shtvg*$ly, $shtqw, $shtvg, "oc2ah");
+
             $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
                     -text=>$xocd, -anchor=>'w');
             push(@grs, $id1);
-    &markdate($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly, $shtlm, $xocd, \@grs);
+    &markdate($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xocd, \@grs);
             $ly++;
         }
         if($vocn) {
             $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
                     -text=>$xocn, -anchor=>"w");
             push(@grs, $id1);
-    &markno($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly, $shtlm, $xocn, \@grs);
+    &markno($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xocn, \@grs);
             $ly++;
         }
 
@@ -973,7 +1250,7 @@ sub mkshtsym {
                 $x+$shtlm+5*$shtaj,$y-1*$shtaj,
                 $x+$shtlm+6*$shtaj,$y-2*$shtaj,
                 $x+$shtlm+3*$shtaj,$y-5*$shtaj,
-                -fill=>'black', -outline=>'black');
+                -fill=>'black', -outline=>'black', -tag=>"app");
 
     }
     else {
@@ -985,7 +1262,7 @@ sub mkshtsym {
                 $x+$shtlm+5*$shtaj,$y-5*$shtaj,
                 $x+$shtlm+6*$shtaj,$y-4*$shtaj,
                 $x+$shtlm+3*$shtaj,$y-1*$shtaj,
-                -fill=>'black', -outline=>'black');
+                -fill=>'black', -outline=>'black', -tag=>"noapp");
 
     }
 
@@ -1052,7 +1329,7 @@ sub decotline {
 
     $left = $$nl;
     if($left<0 && $len>0) {
-#print "FIRST\n";
+print "FIRST\n";
         $left = 0;
         $$nl = 0;
     }
@@ -1185,21 +1462,21 @@ sub imgpush {
     my($id,$cv,$k,$x,$y) = @_;
     my @co;
     my @bb;
-#    print "imgpush $k\n";
+    print "imgpush $k\n";
 
     @co = $cv->coords($k);
-#    print "co $co[0], $co[1], $co[2], $co[3]\n";
-#    print "x $x, y $y\n";
+    print "co $co[0], $co[1], $co[2], $co[3]\n";
+    print "x $x, y $y\n";
     @bb = $cv->bbox($k);
-#    print "bb $bb[0], $bb[1], $bb[2], $bb[3]\n";
+    print "bb $bb[0], $bb[1], $bb[2], $bb[3]\n";
 
     $__ix = $x-$bb[0];
     $__iy = $y-$bb[1];
-#    print "ix $__ix iy $__iy\n";
+    print "ix $__ix iy $__iy\n";
 
 #   print "imgstack ".(join("/",@imgstack))."\n";
     &uniqpush(\@imgstack, $k);
-#    print "imgstack ".(join("/",@imgstack))."\n";
+    print "imgstack ".(join("/",@imgstack))."\n";
 
     &redraw;
 }
@@ -1207,7 +1484,7 @@ sub imgpush {
 sub imgremove {
     my($id,$cv,$k,$x,$y) = @_;
     my $pos;
-#    print "imgremove $k\n";
+    print "imgremove $k\n";
     $pos = &arpos(\@imgstack,$k);
     if($pos>=0) {
         splice(@imgstack,$pos,1);
@@ -1219,21 +1496,21 @@ sub imgpick {
     my($id,$cv,$k,$x,$y) = @_;
     my @co;
     my @bb;
-#    print "imgpick $k\n";
+    print "imgpick $k\n";
 
 #   foreach my $i ($cv->itemcget($k, -members)) {
 #       print "  i $i\n";
 #   }
 
     @co = $cv->coords($k);
-#    print "co $co[0], $co[1], $co[2], $co[3]\n";
-#    print "x $x, y $y\n";
+    print "co $co[0], $co[1], $co[2], $co[3]\n";
+    print "x $x, y $y\n";
     @bb = $cv->bbox($k);
-#    print "bb $bb[0], $bb[1], $bb[2], $bb[3]\n";
+    print "bb $bb[0], $bb[1], $bb[2], $bb[3]\n";
 
     $__ix = $x-$bb[0];
     $__iy = $y-$bb[1];
-#    print "ix $__ix iy $__iy\n";
+    print "ix $__ix iy $__iy\n";
 
     &imgremove($id,$cv,$k,$x,$y);
 
@@ -1247,8 +1524,8 @@ sub imgpick {
 
 sub iscalechange {
     my($v) = @_;
-#    print "iscalechange $v\n";
-#    print "iscale $iscale\n";
+    print "iscalechange $v\n";
+    print "iscale $iscale\n";
 
     if($iscale==0) {
         $imgwd = 128;
@@ -1470,6 +1747,47 @@ sub sort_byocdn {
     &redraw;
 }
 
+sub sort_byoc {
+    if($datepriority==1) {
+        &sort_byocdn;
+    }
+    else {
+        &sort_byocnd;
+    }
+}
+
+sub sort_byahnd {
+    @ar = sort {$dah{$a} cmp $dah{$b}} keys %dfn;
+    &redraw;
+}
+
+sub dncmp {
+    my($an,$ad) = split(/,/, $dah{$a});
+    my($bn,$bd) = split(/,/, $dah{$b});
+    if($ad eq $bd) {
+        return $an cmp $bn;
+    }
+    else {
+        return $ad cmp $bd;
+    }
+}
+
+sub sort_byahdn {
+#    @ar = sort {$dah{$a} cmp $dah{$b}} keys %dfn;
+    @ar = sort dncmp keys %dfn;
+    &redraw;
+}
+
+sub sort_byah {
+    if($datepriority==1) {
+        &sort_byahdn;
+    }
+    else {
+        &sort_byahnd;
+    }
+}
+
+
 sub sort_byfn {
     @ar = sort {$dfn{$a} cmp $dfn{$b}} keys %dfn;
     &redraw;
@@ -1481,7 +1799,6 @@ sub sort_byfn {
 
 sub scan {
     print "scan\n";
-    print "not implemented, yet\n";
 }
 
 sub redrawR {
@@ -1504,14 +1821,14 @@ sub findfirst {
 
 #   $ljmsg->configure(-text=>'');
 
-#print "jumpnext: $jmpdate\n";
+print "jumpnext: $jmpdate\n";
     $i = 0;
     $p = -1;
     foreach $k (@ar) {
         $xfn = $dfn{$k};
         ($xfnd, $dmy) = split(/_/, $xfn);
         if($xfnd eq $jmpdate) {
- #           print "FOUND $i $k\n";
+            print "FOUND $i $k\n";
             $p = $i;
             last;
         }
@@ -1538,14 +1855,14 @@ sub qfindprev {
     my $dmy;
     my $i;
     my $p;
-#print "qfundprev: $rdv\n";
+print "qfundprev: $rdv\n";
     $p = -1;
     for($i=$ledge-1;$i>=0;$i--) {
         $k = $ar[$i];
         $xfn = $dfn{$k};
         ($xfnd, $dmy) = split(/_/, $xfn);
         if($xfnd eq $rdv) {
-#            print "FOUND $i $k\n";
+            print "FOUND $i $k\n";
             $p = $i;
             last;
         }
@@ -1561,14 +1878,14 @@ sub qfindnext {
     my $dmy;
     my $i;
     my $p;
-#print "qfindnext: $rdv\n";
+print "qfindnext: $rdv\n";
     $p = -1;
     for($i=$ledge+1;$i<=$#ar;$i++) {
         $k = $ar[$i];
         $xfn = $dfn{$k};
         ($xfnd, $dmy) = split(/_/, $xfn);
         if($xfnd eq $rdv) {
-#            print "FOUND $i $k\n";
+            print "FOUND $i $k\n";
             $p = $i;
             last;
         }
@@ -1586,7 +1903,7 @@ sub jumpnext {
     my $p;
     my $i;
 
-#print "jumpnext: $jmpdate\n";
+print "jumpnext: $jmpdate\n";
 #   $ljmsg->configure(-text=>'');
 
     $xfnd = $jmpdate;
@@ -1629,7 +1946,7 @@ sub jumpprev {
     my $p;
     my $i;
 
-#print "jumpprev: $jmpdate\n";
+print "jumpprev: $jmpdate\n";
 #   $ljmsg->configure(-text=>'');
 
     $xfnd = $jmpdate;
@@ -1673,7 +1990,7 @@ sub Xjumpprev {
     my $dmy;
     my $i;
     my $p;
-#print "jumpprev: $jmpdate\n";
+print "jumpprev: $jmpdate\n";
 #   $ljmsg->configure(-text=>'');
     $i = 0;
     $p = -1;
@@ -1682,7 +1999,7 @@ sub Xjumpprev {
         $xfn = $dfn{$k};
         ($xfnd, $dmy) = split(/_/, $xfn);
         if($xfnd eq $jmpdate) {
-#            print "FOUND $i $k\n";
+            print "FOUND $i $k\n";
             $p = $i;
             last;
         }
