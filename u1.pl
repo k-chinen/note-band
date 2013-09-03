@@ -563,10 +563,9 @@ sub spick {
 
     {
 
-        my $dmy= $cv->create('rectangle',$x-$r,$y-$r,$x+$r,$y+$r,
-                -tag=>"brange");
-
-        $cv->raise("brange");
+#        my $dmy= $cv->create('rectangle',$x-$r,$y-$r,$x+$r,$y+$r,
+#                -tag=>"brange");
+#        $cv->raise("brange");
 
 
         my @qidlist = $cv->find('closest', $x,$y);
@@ -1056,9 +1055,26 @@ sub mkupsym {
 
 my $__n;
 
+sub decide_color {
+    my($rd,$gd) = @_;
+    my $r;
+    my $ddiff;
+
+    $r = $lowcolor;
+    $ddiff = $rd-$gd;
+    if($ddiff<0) {
+        $r = $negcolor;
+    }
+    elsif(defined $date2color{$gd}) {
+        $r = $date2color{$gd};
+    }
+    return $r;
+}
+
 sub mkshtsym {
-my($cv,$x,$y,$k,$rdv) = @_;
+    my($cv,$x,$y,$k,$rdv) = @_;
     my $crbody;
+    my $cr2body;
     my $cdv;
     my $cid;
     my @labids;
@@ -1071,27 +1087,40 @@ my($cv,$x,$y,$k,$rdv) = @_;
     $__n++;
 #    print "n $__n $x $y\n";
 
-    $crbody = $lowcolor;
-    if(defined $dfn{$k}) {
-        ($dfnD, $dmy) = split(/_/, $dfn{$k});
-        $cdv = $dfn{$k}+0;
-        $ddiff = $rdv-$cdv;
-        if($ddiff<0) {
-            $crbody = $negcolor;
-        }
-        elsif(defined $date2color{$dfnD}) {
-#print "FOUND $date2color{$dfnD}\n";
-            $crbody = $date2color{$dfnD};
-        }
+    my ($xfnd, $xfnt, $xfsd, $xfst, $xocd, $xocn);
+    ($xfnd, $xfnt) = split(/_/, $dfn{$k});
+    ($xfsd, $xfst) = split(/_/, $dfs{$k});
+    ($xocn, $xocd) = split(/,/, $doc{$k});
+
+    my ($xahd, $xahn) = ("noDate", "noNo");
+    if(defined $dah{$k})  {
+        ($xahn, $xahd) = split(/,/, $dah{$k});
     }
+
+#    print "xfnd, xfnt, xfsd, xfst, xocd, xocn\n";
+#    print "$xfnd, $xfnt, $xfsd, $xfst, $xocd, $xocn\n";
+
+    $crbody = $lowcolor;
+    $cr2body = $lowcolor;
+
+    if(defined $dfn{$k}) {
+        $cr2body = &decide_color($rdv, $xfnd);
+    }
+    if(defined $dah{$k}) {
+        $crbody = &decide_color($rdv, $xahd);
+    }
+
 
     my $body = $cv->create('rectangle',
                     $x,$y-$shtht+$shttd,$x+$shtwd,$y,
                     -fill=>'white', -outline=>'#ccc');
     my $cmark = $cv->create('rectangle',
-                    $x,$y-$shtht,$x+$shtwd,$y-$shtht+$shttd,
+                    $x,$y-$shtht,$x+$shtwd-$shttd,$y-$shtht+$shttd,
                     -fill=>$crbody, -outline=>$crbody);
-    @grs = ($body,$cmark);
+    my $cmark2 = $cv->create('rectangle',
+                    $x+$shtwd-$shttd,$y-$shtht,$x+$shtwd,$y-$shtht+$shttd,
+                    -fill=>$cr2body, -outline=>$crbody);
+    @grs = ($body,$cmark,$cmark2);
 
     if($vbug) {
         my $id1 = $cv->create('text', $x+$shtwd/2,$y+$shtvg,
@@ -1102,22 +1131,27 @@ my($cv,$x,$y,$k,$rdv) = @_;
         push(@grs, $id2);
     }
 
-    $ly = 1;
-
-
-    my ($xfnd, $xfnt, $xfsd, $xfst, $xocd, $xocn);
-    ($xfnd, $xfnt) = split(/_/, $dfn{$k});
-    ($xfsd, $xfst) = split(/_/, $dfs{$k});
-    ($xocn, $xocd) = split(/,/, $doc{$k});
-
-#   my ($xahd, $xahn) = ("______", "____");
-    my ($xahd, $xahn) = ("noDate", "noNo");
-    if(defined $dah{$k})  {
-        ($xahn, $xahd) = split(/,/, $dah{$k});
+    if($xocd>0 && $xfnd>0) {
+        my $diff = $xocd - $xfnd;
+        if($diff<0) {
+            $diff = - $diff;
+        }
+        if($diff>100) {
+            my $mistery = $cv->create('oval',
+                $x+$shttd/4,$y-$shtht+$shttd*1/4,
+                $x+$shttd*3/4,$y-$shtht+$shttd*3/4,
+                -fill=>'black', outline=>'black');
+            push(@grs, $mistery);
+        }
+        if(0) {
+            my $id1 = $cv->create('text', $x+$shtwd/2,$y+$shtvg,
+                        -text=>$diff, -fill=>'black');
+            push(@grs, $id1);
+        }
     }
 
-#    print "xfnd, xfnt, xfsd, xfst, xocd, xocn\n";
-#    print "$xfnd, $xfnt, $xfsd, $xfst, $xocd, $xocn\n";
+
+    $ly = 1;
 
     if(defined $dfn{$k}) {
         my $qx;
