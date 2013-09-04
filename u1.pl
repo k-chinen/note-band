@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 #
-# pertial store
 
 use strict;
 use DBM::Deep;
@@ -165,6 +164,46 @@ my $db_ar = tie @ar, 'DBM::Deep', 'ar.db';
 #@ar = keys %pfs;
 
 
+sub dbimport {
+    print "dbimport:\n";
+}
+
+my $dbexport_fname="note-band.export";
+my $dbexport_dir=".";
+my $dbexport_perfix="";
+
+sub export_dah {
+    my($t) = @_;
+    print "export_dah:\n";
+    my $fname;
+    my $k;
+
+    my $ext       = strftime "%Y%m%d%H%M%S", localtime($t);
+    my $heredate  = strftime "%Y/%m/%d %H:%M:%S", localtime($t);
+    my $theredate = strftime "%Y/%m/%d %H:%M:%S", gmtime($t);
+
+    $fname = $dbexport_dir . "/" . "dah" .  "_" . $ext;
+
+    open(F, ">$fname");
+    print F "# Host  ".`hostname`;
+    print F "# Local $heredate\n";
+    print F "# UTC   $theredate"."Z\n";
+    foreach $k (keys %dah) {
+        print F "$k|$dah{$k}\n";
+    }
+    close(F);
+}
+
+sub dbexport {
+    print "dbexport:\n";
+    my $t;
+    $t = time();
+
+    &export_dah($t);
+
+    print "dbexport: done\n";
+}
+
 sub ar_print {
     my $k;
     foreach $k (@ar) {
@@ -294,6 +333,9 @@ my $bsortbyfn = $cline->Button(-text=>"sort by fn", -command=>\&sort_byfn)->pack
 my $bsortbyoc = $cline->Button(-text=>"sort by ocr", -command=>\&sort_byoc)->pack(-side=>'left');
 
 my $qvbug  = $cline->Checkbutton(-text=>'debug',-variable=>\$vbug,-command=>[\&tgv,\$vbug], -relief=>'sunken')->pack(-side=>'right');
+my $qexport = $cline->Button(-text=>'export',-command=>[\&dbexport])->pack(-side=>'right');
+my $qimport = $cline->Button(-text=>'import',-command=>[\&dbimport])->pack(-side=>'right');
+
 
 my $dline = $base->Frame->pack(-side=>'top',-fill=>'x');
 my $dmy = $dline->Label(-text=>'ref.date')->pack(-side=>'left');
@@ -334,8 +376,8 @@ my $qvocn  = $vsline->Checkbutton(-text=>'OCN',-variable=>\$vocn,-command=>[\&tg
 my $vpline = $vsline;
 my $dmy    = $vpline->Label(-width=>7, -text=>'')->pack(-side=>'left');
 my $dmy    = $vpline->Label(-width=>7, -text=>'priority')->pack(-side=>'left');
-my $qvpriority_no    = $vpline->Radiobutton(-text=>'no-date',-variable=>\$datepriority,-value=>0)->pack(-side=>'left');
-my $qvpriority_date  = $vpline->Radiobutton(-text=>'date-no',-variable=>\$datepriority,-value=>1)->pack(-side=>'left');
+my $qvpriority_no    = $vpline->Radiobutton(-text=>'no-date',-variable=>\$datepriority,-value=>0,-command=>[\&redraw])->pack(-side=>'left');
+my $qvpriority_date  = $vpline->Radiobutton(-text=>'date-no',-variable=>\$datepriority,-value=>1,-command=>[\&redraw])->pack(-side=>'left');
 
 
 
@@ -352,8 +394,9 @@ sub verify_ht {
     if($vfsd) {  $y++; }
     if($vfst) {  $y++; }
     if($vocd || $vocn) {     $y++; }
-    if($vocd) {  $y++; }
-    if($vocn) {  $y++; }
+#    if($vocd) {  $y++; }
+#    if($vocn) {  $y++; }
+    if($vocd) {  $y+=2; }
 
     print "verify_ht: y $y\n";
     $shtht = $shttd + $y*$shtvg + $shtct;
@@ -1158,6 +1201,7 @@ sub mkshtsym {
         my $mx;
         my $lx;
         my $id1;
+        my $id2;
 #       $shtqw = $shtvg;
         $qx = $x+$shtlm;
         $mx = $x+$shtlm+$shtqw+2;
@@ -1165,45 +1209,44 @@ sub mkshtsym {
 
         my $gg = -$shtvg/2;
 
-        {
+    {
+        &mkcrosssym(\@grs, $cv, $k,
+            $qx, $y-$shtht+$shttd+$shtvg*$ly, $shtqw, $shtvg, "CLah");
 
-  if(0) {
-            $id1 = $cv->create('rectangle',
-                    $qx,        $y-$shtht+$shttd+$shtvg*$ly+$shtvg/3,
-                    $qx+$shtqw, $y-$shtht+$shttd+$shtvg*$ly-$shtvg*2/3,
-                    -fill=>'white', -outline=>'black', -tag=>"CLah");
-            $cv->raise($id1);
-            push(@grs, $id1);
+      if($datepriority==0) {
 
-            $id1 = $cv->create('line',
-                    $qx,        $y-$shtht+$shttd+$shtvg*$ly+$shtvg/3,
-                    $qx+$shtqw, $y-$shtht+$shttd+$shtvg*$ly-$shtvg*2/3);
-            $cv->raise($id1);
-            push(@grs, $id1);
+        $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                -text=>$xahn, -anchor=>'w');
+        push(@grs, $id1);
+&markno($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xahn, \@grs);
+        $ly++;
 
-            $id1 = $cv->create('line',
-                    $qx,        $y-$shtht+$shttd+$shtvg*$ly-$shtvg*2/3,
-                    $qx+$shtqw, $y-$shtht+$shttd+$shtvg*$ly+$shtvg/3);
-            $cv->raise($id1);
-            push(@grs, $id1);
-  }
+        $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                -text=>$xahd, -anchor=>'w');
+        push(@grs, $id1);
+&markdate($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xahd, \@grs);
+        $ly++;
 
-            &mkcrosssym(\@grs, $cv, $k,
-                $qx, $y-$shtht+$shttd+$shtvg*$ly, $shtqw, $shtvg, "CLah");
+      }
+    
+      if($datepriority==1) {
 
-            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
-                    -text=>$xahd, -anchor=>'w');
-            push(@grs, $id1);
-    &markdate($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xahd, \@grs);
-            $ly++;
-        }
-        {
-            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
-                    -text=>$xahn, -anchor=>'w');
-            push(@grs, $id1);
-    &markno($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xahn, \@grs);
-            $ly++;
-        }
+        $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                -text=>$xahd, -anchor=>'w');
+        push(@grs, $id1);
+&markdate($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xahd, \@grs);
+        $ly++;
+
+        $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                -text=>$xahn, -anchor=>'w');
+        push(@grs, $id1);
+&markno($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xahn, \@grs);
+        $ly++;
+
+      }
+
+    }
+
         {
             $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
                     -text=>' = = = = ', -anchor=>'w');
@@ -1253,6 +1296,13 @@ sub mkshtsym {
             $ly++;
         }
         if($vocd) {
+    if($datepriority==0) {
+            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                    -text=>$xocn, -anchor=>"w");
+            push(@grs, $id1);
+    &markno($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xocn, \@grs);
+            $ly++;
+
             &mkupsym(\@grs, $cv, $k,
                 $qx, $y-$shtht+$shttd+$shtvg*$ly, $shtqw, $shtvg, "oc2ah");
 
@@ -1261,13 +1311,29 @@ sub mkshtsym {
             push(@grs, $id1);
     &markdate($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xocd, \@grs);
             $ly++;
-        }
-        if($vocn) {
+
+
+    }
+
+    if($datepriority==1) {
+            &mkupsym(\@grs, $cv, $k,
+                $qx, $y-$shtht+$shttd+$shtvg*$ly, $shtqw, $shtvg, "oc2ah");
+
+            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                    -text=>$xocd, -anchor=>'w');
+            push(@grs, $id1);
+    &markdate($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xocd, \@grs);
+            $ly++;
+
+
             $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
                     -text=>$xocn, -anchor=>"w");
             push(@grs, $id1);
     &markno($cv, $mx, $y-$shtht+$shttd+$shtvg*$ly+$gg, $shtmw, $xocn, \@grs);
             $ly++;
+    }
+
+
         }
 
     }
