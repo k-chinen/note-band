@@ -322,15 +322,15 @@ my $dmy = $jline->Checkbutton(-text=>'veryloose',-variable=>\$jumploose,
 
 
 #my $brebuild = $cline->Button(-text=>"rebuild", -command=>\&rebuild)->pack(-side=>'left');
-my $bscan = $cline->Button(-text=>"scan", -command=>\&scan)->pack(-side=>'left');
-my $bimportbyfs = $cline->Button(-text=>"import by fs", -command=>\&import_byfs)->pack(-side=>'left');
-my $bsortbyah = $cline->Button(-text=>"sort by ah", -command=>\&sort_byah)->pack(-side=>'left');
-#my $bsortbyahnd = $cline->Button(-text=>"sort by ah no-date", -command=>\&sort_byahnd)->pack(-side=>'left');
-#my $bsortbyahdn = $cline->Button(-text=>"sort by ah date-no", -command=>\&sort_byahdn)->pack(-side=>'left');
-my $bsortbyfn = $cline->Button(-text=>"sort by fn", -command=>\&sort_byfn)->pack(-side=>'left');
-#my $bsortbyocdn = $cline->Button(-text=>"sort by date-no of ocr", -command=>\&sort_byocdn)->pack(-side=>'left');
-#my $bsortbyocnd = $cline->Button(-text=>"sort by no-date of ocr", -command=>\&sort_byocnd)->pack(-side=>'left');
-my $bsortbyoc = $cline->Button(-text=>"sort by ocr", -command=>\&sort_byoc)->pack(-side=>'left');
+#my $bscan = $cline->Button(-text=>"scan", -command=>\&scan)->pack(-side=>'left');
+#my $bimportbyfs = $cline->Button(-text=>"import by fs", -command=>\&import_byfs)->pack(-side=>'left');
+my $sortmb = $cline->Menubutton(-text=>"sort...", -relief=>"raised")->pack(-side=>'left');
+$sortmb->command(-label => "by AH", -command => \&sort_byah);
+$sortmb->command(-label => "by FN", -command => \&sort_byfn);
+$sortmb->command(-label => "by OC", -command => \&sort_byoc);
+
+my $bguessdate = $cline->Button(-text=>"auto\ndate",-command=>\&guess_date)->pack(-side=>'left');
+my $bcleardate = $cline->Button(-text=>"clear\ndate",-command=>\&clear_date)->pack(-side=>'left');
 
 my $qvbug  = $cline->Checkbutton(-text=>'debug',-variable=>\$vbug,-command=>[\&tgv,\$vbug], -relief=>'sunken')->pack(-side=>'right');
 my $qexport = $cline->Button(-text=>'export',-command=>[\&dbexport])->pack(-side=>'right');
@@ -356,7 +356,7 @@ my $dmy = $dline->Checkbutton(-text=>'1m/7d',-variable=>\$datecolorstyle,
 my $datepriority=1;
 
 my $vfnd=1;
-my $vfnt=0;
+my $vfnt=1;
 my $vfsd=0;
 my $vfst=0;
 my $vocd=1;
@@ -366,6 +366,7 @@ my $vsline = $base->Frame->pack(-side=>'top', -fill=>'x');
 my $dmy    = $vsline->Label(-width=>7, -text=>'meta')->pack(-side=>'left');
 my $qvfnd  = $vsline->Checkbutton(-text=>'FND',-variable=>\$vfnd,-command=>[\&tgv,\$vfnd])->pack(-side=>'left');
 my $qvfnt  = $vsline->Checkbutton(-text=>'FNT',-variable=>\$vfnt,-command=>[\&tgv,\$vfnt])->pack(-side=>'left');
+#my $qvfnt  = $vsline->Radiobutton(-text=>'FNT',-variable=>\$vfnt,-value=>1,-command=>[\&redraw])->pack(-side=>'left');
 my $qvfsd  = $vsline->Checkbutton(-text=>'FSD',-variable=>\$vfsd,-command=>[\&tgv,\$vfsd])->pack(-side=>'left');
 my $qvfst  = $vsline->Checkbutton(-text=>'FST',-variable=>\$vfst,-command=>[\&tgv,\$vfst])->pack(-side=>'left');
 my $qvocd  = $vsline->Checkbutton(-text=>'OCD',-variable=>\$vocd,-command=>[\&tgv,\$vocd])->pack(-side=>'left');
@@ -394,8 +395,8 @@ sub verify_ht {
     if($vfsd) {  $y++; }
     if($vfst) {  $y++; }
     if($vocd || $vocn) {     $y++; }
-#    if($vocd) {  $y++; }
-#    if($vocn) {  $y++; }
+#   if($vocd) {  $y++; }
+#   if($vocn) {  $y++; }
     if($vocd) {  $y+=2; }
 
     print "verify_ht: y $y\n";
@@ -1114,6 +1115,125 @@ sub decide_color {
     return $r;
 }
 
+sub drawlegend {
+    my($cv,$x,$y,$k,$rdv) = @_;
+    my $crbody;
+    my $cr2body;
+    my $cdv;
+    my $cid;
+    my @labids;
+    my @grs;
+    my $ly;
+    my $ddiff;
+    my $dfnD;
+    my $dmy;
+
+    $__n++;
+#    print "n $__n $x $y\n";
+
+    my ($xfnd, $xfnt, $xfsd, $xfst, $xocd, $xocn);
+    my ($xahd, $xahn) = ("noDate", "noNo");
+
+    $crbody = $lowcolor;
+    $cr2body = $lowcolor;
+
+    $ly = 1;
+
+	my $qx;
+	my $mx;
+	my $lx;
+	my $id1;
+	my $id2;
+#  	$shtqw = $shtvg;
+	$qx = $x+$shtlm;
+	$mx = $x+$shtlm+$shtqw+2;
+	$lx = $x+$shtlm+$shtqw+2+$shtmw+2;
+	$lx = 0;
+
+    my $gg = -$shtvg/2;
+
+    if($datepriority==0) {
+        $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                -text=>"AHN", -anchor=>'w');
+        push(@grs, $id1);
+        $ly++;
+
+        $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                -text=>"AHD", -anchor=>'w');
+        push(@grs, $id1);
+        $ly++;
+    }
+    if($datepriority==1) {
+        $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                -text=>"AHD", -anchor=>'w');
+        push(@grs, $id1);
+        $ly++;
+
+        $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                -text=>"AHN", -anchor=>'w');
+        push(@grs, $id1);
+        $ly++;
+    }
+
+	{
+		$ly++;
+	}
+	if($vfnd) {
+		$id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+				-text=>"FND", -anchor=>'w');
+		push(@grs, $id1);
+		$ly++;
+	}
+	if($vfnt) {
+		$id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+				-text=>"FNT", -anchor=>'w');
+		push(@grs, $id1);
+		$ly++;
+	}
+	if($vfsd || $vfst) {
+		$ly++;
+	}
+	if($vfsd) {
+		$id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+				-text=>"FSD", -anchor=>'w');
+		push(@grs, $id1);
+		$ly++;
+	}
+	if($vfst) {
+		$id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+				-text=>"FST", -anchor=>'w');
+		push(@grs, $id1);
+		$ly++;
+	}
+	if($vocd || $vocn) {
+		$ly++;
+	}
+	if($vocd) {
+		if($datepriority==0) {
+            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                    -text=>"OCN", -anchor=>"w");
+            push(@grs, $id1);
+            $ly++;
+
+            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                    -text=>"OCD", -anchor=>'w');
+            push(@grs, $id1);
+            $ly++;
+    	}
+    	if($datepriority==1) {
+            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                    -text=>"OCD", -anchor=>'w');
+            push(@grs, $id1);
+            $ly++;
+
+            $id1 = $cv->create('text', $lx, $y-$shtht+$shttd+$shtvg*$ly,
+                    -text=>"OCN", -anchor=>"w");
+            push(@grs, $id1);
+            $ly++;
+    	}
+	}
+}
+
 sub mkshtsym {
     my($cv,$x,$y,$k,$rdv) = @_;
     my $crbody;
@@ -1386,9 +1506,9 @@ sub mkshtsym {
 
 }
 
-my $sltmargin = 30;
-my $sllmargin = 30;
-my $slrmargin = 30;
+my $sltmargin = 40;
+my $sllmargin = 40;
+my $slrmargin = 40;
 
 sub decotline {
     my($cv,$ox,$oy,$nar,$nl,$refdate) = @_;
@@ -1500,6 +1620,7 @@ print "\n";
                             -fill=>'black');
     }
 
+	&drawlegend($cv,0,$sy,'','');
 
     $x = 0;
     for($i=$left;$i<$len;$i++) {
@@ -1896,6 +2017,55 @@ sub sort_byfn {
 #sub rebuild {
 #   print "rebuild\n";
 #}
+
+
+sub clear_date {
+print STDERR "clear_date:\n";
+	undef %dah;
+	&redraw;
+}
+
+sub guess_date {
+print STDERR "guess_date:\n";
+	my($k);
+    my ($xfnd, $xfnt, $xfsd, $xfst, $xocd, $xocn);
+#    ($xfsd, $xfst) = split(/_/, $dfs{$k});
+	my($ch);
+	my($nch);
+
+	$nch = 0;
+	foreach $k (@ar) {
+		$ch = 0;
+
+		if(defined $dah{$k}) {
+			next;
+		}
+
+		if(defined $doc{$k}) {
+    		($xocn, $xocd) = split(/,/, $doc{$k});
+			if(&verify_date($xocd)) {
+				$dah{$k} = $doc{$k};
+				$ch++;
+			}
+		}
+		if($ch==0 && defined $dfn{$k}) {
+    		($xfnd, $xfnt) = split(/_/, $dfn{$k});
+			if(&verify_date($xfnd)) {
+				$dah{$k} = "9999,".$xfnd;
+				$ch++;
+			}
+		}
+
+		if($ch>0) {
+			$nch++;
+		}
+	}
+
+	if($nch>0) {
+    	&redraw;
+	}
+}
+
 
 sub scan {
     print "scan\n";
