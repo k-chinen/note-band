@@ -324,7 +324,7 @@ my $dmy = $jline->Checkbutton(-text=>'veryloose',-variable=>\$jumploose,
 #my $brebuild = $cline->Button(-text=>"rebuild", -command=>\&rebuild)->pack(-side=>'left');
 #my $bscan = $cline->Button(-text=>"scan", -command=>\&scan)->pack(-side=>'left');
 #my $bimportbyfs = $cline->Button(-text=>"import by fs", -command=>\&import_byfs)->pack(-side=>'left');
-my $sortmb = $cline->Menubutton(-text=>"sort...", -relief=>"raised")->pack(-side=>'left');
+my $sortmb = $cline->Menubutton(-text=>"sort\nby...", -relief=>"raised")->pack(-side=>'left');
 $sortmb->command(-label => "by AH", -command => \&sort_byah);
 $sortmb->command(-label => "by FN", -command => \&sort_byfn);
 $sortmb->command(-label => "by OC", -command => \&sort_byoc);
@@ -399,7 +399,7 @@ sub verify_ht {
 #   if($vocn) {  $y++; }
     if($vocd) {  $y+=2; }
 
-    print "verify_ht: y $y\n";
+#   print "verify_ht: y $y\n";
     $shtht = $shttd + $y*$shtvg + $shtct;
 }
 
@@ -539,6 +539,157 @@ sub conv_CLah {
     undef $dah{$k};
 }
 
+sub edah_apply {
+	my($xw,$k,$xwno,$xwdate) = @_;
+ if(0) {
+	print "?no   ";
+	print $xwno->cget(-text);
+	print "\n";
+	print "?date ";
+	print $xwdate->cget(-text);
+	print "\n";
+ }
+
+	my $xdah = $xwno->cget(-text) . "," . $xwdate->cget(-text);
+
+ if(0) {
+	print "xdah $xdah\n";
+ }
+
+	$dah{$k} = $xdah;
+
+	$xw->destroy;
+
+	&redraw;
+}
+sub edah_cancel {
+	my($xw) = @_;
+	$xw->destroy;
+}
+
+
+sub mark_ok {
+	my($wM) = @_;
+	$wM->create('rectangle', 0, 0, $shtmw, $shtmw, -outline=>"green",-fill=>"green");
+}
+
+sub mark_ng {
+	my($wM) = @_;
+	$wM->create('rectangle', 0, 0, $shtmw, $shtmw, -outline=>"red",-fill=>"red");
+}
+
+sub updatentrymark {
+	my($itself,$interval,$type,$outW) = @_;
+#	print "updatentrymark type |$type|\n";
+	my $tmpv = $itself->cget(-text);
+
+	my $ik=999;
+	if($type eq 'no') {
+		if($tmpv ne '' && length($tmpv)<=4) {
+#print "be tmpv $tmpv\n";
+			$tmpv = "0"x(4-length($tmpv)) . $tmpv;
+#print "af tmpv $tmpv\n";
+		}
+
+		$ik=&verify_no($tmpv);
+	}
+	elsif($type eq 'date') {
+		$ik=&verify_date($tmpv);
+	}
+	else {
+		print "unexpected type |$type|\n";
+		return;
+	}
+
+	if($ik==999) {
+		return;
+	}
+
+#	print "updatentrymark type |$type| tmpv |$tmpv| ik $ik\n";
+	if($ik>0) {
+#		print "Safe\n";
+		&mark_ok($outW);
+	}
+	else {
+#		print "Out\n";
+		&mark_ng($outW);
+	}
+
+	# re-entry for next time
+	my $aaa = $itself->after($interval, [\&updatentrymark,$itself,$interval,$type,$outW]);
+}
+
+sub mk_edwin {
+    my($k) = @_;
+	my $edwin = $mw->Toplevel();
+	my $elabelx	= $edwin->Label(-text=>$k)->pack(-side=>"top", -fill=>"x");
+	my $elabel 	= $edwin->Label(-text=>"Edit AH")->pack(-side=>"top", -fill=>"x");
+	my $ecomm 	= $edwin->Frame()->pack(-side=>"bottom", -fill=>"x");
+	my $eform 	= $edwin->Frame()->pack(-side=>"top", -fill=>"both");
+	my $enoF;
+	my $edateF;
+	if($datepriority==0) {
+		$enoF	= $eform->Frame()->pack(-side=>"top", -fill=>"x");
+		$edateF	= $eform->Frame()->pack(-side=>"top", -fill=>"x");
+	}
+	else {
+		$edateF	= $eform->Frame()->pack(-side=>"top", -fill=>"x");
+		$enoF	= $eform->Frame()->pack(-side=>"top", -fill=>"x");
+	}
+	my $edateL	= $edateF->Label(-text=>"Date",-width=>8)->pack(-side=>"left");
+	my $edateM	= $edateF->Canvas(-width=>10,-height=>10)->pack(-side=>"left");
+	my $enoL	= $enoF->Label(-text=>"No",-width=>8)->pack(-side=>"left");
+	my $enoM	= $enoF->Canvas(-width=>10,-height=>10)->pack(-side=>"left");
+
+    my ($xahd, $xahn) = ("noDate", "noNo");
+    if(defined $dah{$k})  {
+        ($xahn, $xahd) = split(/,/, $dah{$k});
+    }
+
+	my $eno		= $enoF->Entry(-text=>$xahn,)->pack(-side=>"left",-fill=>"x");
+	my $edate	= $edateF->Entry(-text=>$xahd)->pack(-side=>"left",-fill=>"x");
+
+	my $aaa = $eno->after(250, [\&updatentrymark,$eno,250,'no',$enoM]);
+	my $aaa = $edate->after(250, [\&updatentrymark,$edate,250,'date',$edateM]);
+
+	my $edateC	= $edateF->Canvas(-width=>10,-height=>10)->pack(-side=>"left");
+	my $id = $edateC->create("rectangle", 1, 1, 9, 9, -fill=>"white");
+    $edateC->bind("all", "<ButtonPress-1>" => [\&edah_clearv,$edateC,$edate]);
+	my $id = $edateC->create("line", 1, 1, 9, 9);
+	my $id = $edateC->create("line", 1, 9, 9, 1);
+
+	my $enoC	= $enoF->Canvas(-width=>10,-height=>10)->pack(-side=>"left");
+	my $id = $enoC->create("rectangle", 1, 1, 9, 9, -fill=>"white");
+    $enoC->bind("all", "<ButtonPress-1>" => [\&edah_clearv,$enoC,$eno]);
+	my $id = $enoC->create("line", 1, 1, 9, 9);
+	my $id = $enoC->create("line", 1, 9, 9, 1);
+	
+	
+
+	my $eapply	= $ecomm->Button(-text=>"apply",-command=>[\&edah_apply,$edwin,$k,$eno,$edate])->pack(-side=>"left");
+	my $ecancel	= $ecomm->Button(-text=>"cancel",-command=>[\&edah_cancel,$edwin])->pack(-side=>"left");
+}
+
+sub edah_clearv {
+	my($Xobj,$wC,$wE) = @_;
+print "edah_clearv: $dmy, $wC, $wE\n";
+#	$wE->configure(-text=>"");
+	$wE->delete(0,'end');
+}
+
+sub qqq {
+	my(@args) = @_;
+	print "qqq\n";
+}
+
+
+sub edit_ah {
+    my($k) = @_;
+    print "EDah $k\n";
+
+	&mk_edwin($k);
+}
+
 sub conv_fn2ah {
     my($k) = @_;
     print "fn2ah $k\n";
@@ -665,6 +816,10 @@ sub spick {
                     foreach $mtag (@mtaglist) {
                         if($mtag eq 'CLah') {
                             &conv_CLah($qtag);
+                            $chg++;
+                        }
+                        if($mtag eq 'EDah') {
+                            &edit_ah($qtag);
                             $chg++;
                         }
                         if($mtag eq 'fn2ah') {
@@ -987,7 +1142,10 @@ sub verify_date {
 
 sub verify_no {
     my($xd) = @_;
-    if($xd =~ /\d{4}/) {
+	if($xd eq '9999') {
+		return 2;
+	}
+    if($xd =~ /^\d{4}$/) {
         return 1;
     }
     return 0;
@@ -1036,7 +1194,11 @@ sub markno {
 
     $ck = &verify_no($xd);
 
-    if($ck==1) {
+    if($ck==2) {
+        $id = $cv->create('oval', $x, $y, $x+$r, $y+$r,
+                -fill=>'#fa0', -outline=>'#fa0');
+    }
+    elsif($ck==1) {
         $id = $cv->create('oval', $x, $y, $x+$r, $y+$r,
                 -fill=>'#fff', -outline=>'#fff');
     }
@@ -1045,6 +1207,30 @@ sub markno {
                 -fill=>'#f00', -outline=>'#f00');
     }
     push(@$nar, $id);
+}
+
+sub mkplussym {
+    my($refar, $cv, $k, $x, $y, $w, $h, $xtag) = @_;
+    my $id1;
+    $id1 = $cv->create('rectangle',
+            $x,    $y+$h/3,
+            $x+$w, $y-$h*2/3,
+            -fill=>'white', -outline=>'black', -tag=>$xtag);
+    $cv->raise($id1);
+    push(@{$refar}, $id1);
+
+    $id1 = $cv->create('line',
+            $x+$w/2, $y+$h/3,
+            $x+$w/2, $y-$h*2/3);
+    $cv->raise($id1);
+    push(@{$refar}, $id1);
+
+    $id1 = $cv->create('line',
+            $x, 	$y+$h/3-$h/2,
+            $x+$w, 	$y+$h/3-$h/2);
+    $cv->raise($id1);
+    push(@{$refar}, $id1);
+
 }
 
 sub mkcrosssym {
@@ -1148,7 +1334,7 @@ sub drawlegend {
 	$qx = $x+$shtlm;
 	$mx = $x+$shtlm+$shtqw+2;
 	$lx = $x+$shtlm+$shtqw+2+$shtmw+2;
-	$lx = 0;
+	$lx = $x;
 
     my $gg = -$shtvg/2;
 
@@ -1331,7 +1517,9 @@ sub mkshtsym {
 
     {
         &mkcrosssym(\@grs, $cv, $k,
-            $qx, $y-$shtht+$shttd+$shtvg*$ly, $shtqw, $shtvg, "CLah");
+            $qx, $y-$shtht+$shttd+$shtvg*($ly+1), $shtqw, $shtvg, "CLah");
+        &mkplussym(\@grs, $cv, $k,
+            $qx, $y-$shtht+$shttd+$shtvg*($ly+0), $shtqw, $shtvg, "EDah");
 
       if($datepriority==0) {
 
@@ -1620,7 +1808,7 @@ print "\n";
                             -fill=>'black');
     }
 
-	&drawlegend($cv,0,$sy,'','');
+	&drawlegend($cv,3,$sy,'','');
 
     $x = 0;
     for($i=$left;$i<$len;$i++) {
@@ -2164,7 +2352,6 @@ print "qfindnext: $rdv\n";
 
 }
 
-#sub mkdateoffset {
 
 
 sub jumpnext {
