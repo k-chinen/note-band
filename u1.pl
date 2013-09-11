@@ -283,7 +283,7 @@ my $shtga   = 25;
 my $shtct   = 20;
 my $shtaj   = 3;
 my $shtlm   = 5;
-my $shtqw   = 10;
+my $shtqw   = 14;
 my $shtmw   = 5;
 
 my $vbug=0;
@@ -324,13 +324,13 @@ my $dmy = $jline->Checkbutton(-text=>'veryloose',-variable=>\$jumploose,
 #my $brebuild = $cline->Button(-text=>"rebuild", -command=>\&rebuild)->pack(-side=>'left');
 #my $bscan = $cline->Button(-text=>"scan", -command=>\&scan)->pack(-side=>'left');
 #my $bimportbyfs = $cline->Button(-text=>"import by fs", -command=>\&import_byfs)->pack(-side=>'left');
-my $sortmb = $cline->Menubutton(-text=>"sort\nby...", -relief=>"raised")->pack(-side=>'left');
+my $sortmb = $cline->Menubutton(-text=>"sort by...", -relief=>"raised")->pack(-side=>'left');
 $sortmb->command(-label => "by AH", -command => \&sort_byah);
 $sortmb->command(-label => "by FN", -command => \&sort_byfn);
 $sortmb->command(-label => "by OC", -command => \&sort_byoc);
 
-my $bguessdate = $cline->Button(-text=>"auto\ndate",-command=>\&guess_date)->pack(-side=>'left');
-my $bcleardate = $cline->Button(-text=>"clear\ndate",-command=>\&clear_date)->pack(-side=>'left');
+my $bguessdate = $cline->Button(-text=>"auto guess dates",-command=>\&guess_date)->pack(-side=>'left');
+my $bcleardate = $cline->Button(-text=>"clear dates",-command=>\&clear_date)->pack(-side=>'left');
 
 my $qvbug  = $cline->Checkbutton(-text=>'debug',-variable=>\$vbug,-command=>[\&tgv,\$vbug], -relief=>'sunken')->pack(-side=>'right');
 my $qexport = $cline->Button(-text=>'export',-command=>[\&dbexport])->pack(-side=>'right');
@@ -362,16 +362,20 @@ my $vfst=0;
 my $vocd=1;
 my $vocn=1;
 
+
 my $vsline = $base->Frame->pack(-side=>'top', -fill=>'x');
+if(0) {
 my $dmy    = $vsline->Label(-width=>7, -text=>'meta')->pack(-side=>'left');
 my $qvfnd  = $vsline->Checkbutton(-text=>'FND',-variable=>\$vfnd,-command=>[\&tgv,\$vfnd])->pack(-side=>'left');
 my $qvfnt  = $vsline->Checkbutton(-text=>'FNT',-variable=>\$vfnt,-command=>[\&tgv,\$vfnt])->pack(-side=>'left');
 #my $qvfnt  = $vsline->Radiobutton(-text=>'FNT',-variable=>\$vfnt,-value=>1,-command=>[\&redraw])->pack(-side=>'left');
-my $qvfsd  = $vsline->Checkbutton(-text=>'FSD',-variable=>\$vfsd,-command=>[\&tgv,\$vfsd])->pack(-side=>'left');
-my $qvfst  = $vsline->Checkbutton(-text=>'FST',-variable=>\$vfst,-command=>[\&tgv,\$vfst])->pack(-side=>'left');
+#my $qvfsd  = $vsline->Checkbutton(-text=>'FSD',-variable=>\$vfsd,-command=>[\&tgv,\$vfsd])->pack(-side=>'left');
+#my $qvfst  = $vsline->Checkbutton(-text=>'FST',-variable=>\$vfst,-command=>[\&tgv,\$vfst])->pack(-side=>'left');
+#my $qvocd  = $vsline->Checkbutton(-text=>'OC',-variable=>\$vocd,-command=>[\&tgv,\$vocd])->pack(-side=>'left');
 my $qvocd  = $vsline->Checkbutton(-text=>'OCD',-variable=>\$vocd,-command=>[\&tgv,\$vocd])->pack(-side=>'left');
 my $qvocn  = $vsline->Checkbutton(-text=>'OCN',-variable=>\$vocn,-command=>[\&tgv,\$vocn])->pack(-side=>'left');
 
+}
 
 #my $vpline = $base->Frame->pack(-side=>'top', -fill=>'x');
 my $vpline = $vsline;
@@ -646,25 +650,31 @@ sub mk_edwin {
         ($xahn, $xahd) = split(/,/, $dah{$k});
     }
 
-	my $eno		= $enoF->Entry(-text=>$xahn,)->pack(-side=>"left",-fill=>"x");
+	my $eno		= $enoF->Entry(-text=>$xahn)->pack(-side=>"left",-fill=>"x");
 	my $edate	= $edateF->Entry(-text=>$xahd)->pack(-side=>"left",-fill=>"x");
 
 	my $aaa = $eno->after(250, [\&updatentrymark,$eno,250,'no',$enoM]);
 	my $aaa = $edate->after(250, [\&updatentrymark,$edate,250,'date',$edateM]);
 
-	my $edateC	= $edateF->Canvas(-width=>10,-height=>10)->pack(-side=>"left");
+	my $edateC	= $edateF->Canvas(-width=>30,-height=>30)->pack(-side=>"left");
+  if(0) {
 	my $id = $edateC->create("rectangle", 1, 1, 9, 9, -fill=>"white");
     $edateC->bind("all", "<ButtonPress-1>" => [\&edah_clearv,$edateC,$edate]);
 	my $id = $edateC->create("line", 1, 1, 9, 9);
 	my $id = $edateC->create("line", 1, 9, 9, 1);
+  }
+	my $id = $edateC->createBitmap(10,10, -bitmap=>'@./clear14.xbm');
+    $edateC->bind("all", "<ButtonPress-1>" => [\&edah_clearv,$edateC,$edate]);
 
-	my $enoC	= $enoF->Canvas(-width=>10,-height=>10)->pack(-side=>"left");
+	my $enoC	= $enoF->Canvas(-width=>30,-height=>30)->pack(-side=>"left");
+  if(0) {
 	my $id = $enoC->create("rectangle", 1, 1, 9, 9, -fill=>"white");
     $enoC->bind("all", "<ButtonPress-1>" => [\&edah_clearv,$enoC,$eno]);
 	my $id = $enoC->create("line", 1, 1, 9, 9);
 	my $id = $enoC->create("line", 1, 9, 9, 1);
-	
-	
+  }
+	my $id = $enoC->createBitmap(10,10, -bitmap=>'@./clear14.xbm');
+    $enoC->bind("all", "<ButtonPress-1>" => [\&edah_clearv,$enoC,$eno]);
 
 	my $eapply	= $ecomm->Button(-text=>"apply",-command=>[\&edah_apply,$edwin,$k,$eno,$edate])->pack(-side=>"left");
 	my $ecancel	= $ecomm->Button(-text=>"cancel",-command=>[\&edah_cancel,$edwin])->pack(-side=>"left");
@@ -756,12 +766,34 @@ sub spick {
     $__iy = $y-$bb[1];
     print "ix $__ix iy $__iy\n";
 
+	if($__iy<$shttd) {
+		print "TAB\n";
+
+    $cv->create('rectangle', $bb[0], $bb[1], $bb[2], $bb[3],
+            -fill=>'gray75', -outline=>'gray75', -tag=>"imark");
+    $cv->raise('imark');
+    $cv->raise($k);
+
+    $aim = $k;
+
+	return;
+
+
+	}
+	else {
+		print "not-TAB\n";
+
+	$aim = '';
+	}
+
+
     {
 
-#        my $dmy= $cv->create('rectangle',$x-$r,$y-$r,$x+$r,$y+$r,
-#                -tag=>"brange");
-#        $cv->raise("brange");
-
+ if(1) {
+        my $dmy= $cv->create('oval',$x-$r,$y-$r,$x+$r,$y+$r,
+                -tag=>"brange");
+        $cv->raise("brange");
+ }
 
         my @qidlist = $cv->find('closest', $x,$y);
         my $qid;
@@ -791,16 +823,46 @@ sub spick {
                 my @memlist;
                 @memlist = $cv->itemcget($qtag, -members);
                 foreach $mid (@memlist) {
+my @xtags = $cv->gettags($mid);
+					if(@xtags == () ) {
+#						print "\t\t\tskip\n";
+						next;
+					}
+print "mem |$mid| tag |".(join(",",@xtags))."|\n";
                     my($llx, $lly, $urx, $ury) = $cv->coords($mid);
-                    my($gx,$gy) = ( ($llx+$urx)/2, ($lly+$ury)/2);
+					my($gx,$gy);
+					if(defined $urx) {
+                    	($gx,$gy) = ( ($llx+$urx)/2, ($lly+$ury)/2);
+					}
+					else {
+                    	($gx,$gy) = ($llx, $lly);
+					}
                     my $dd;
                     $dd = ($gx-$x)*($gx-$x) + ($gy-$y)*($gy-$y);
+print "  llx $llx lly $lly urx $urx ury $ury\n";
+print "  gx $gx gy $gy -> dd $dd/rr $rr\n";
                     if($dd<=$rr) {
                         $dist{$mid} = $dd;
                     }
                 }
 
                 my @dorder = sort {$dist{$a}<=>$dist{$b}} keys %dist;
+
+                print "- - -\n";
+                foreach $mid (@dorder) {
+                    my @mtaglist;
+                    my $mtag;
+
+                    print "=mid $mid dist $dist{$mid}\n";
+
+                    @mtaglist = $cv->gettags($mid);
+                    print "\t\ttag ".(join("/",@mtaglist))."\n";
+					if(@mtaglist == () ) {
+						print "\t\t\tskip\n";
+						next;
+					}
+				}
+
                 my $chg = 0;
 
                 print "- - -\n";
@@ -812,6 +874,10 @@ sub spick {
 
                     @mtaglist = $cv->gettags($mid);
                     print "\t\ttag ".(join("/",@mtaglist))."\n";
+					if(@mtaglist == () ) {
+						print "\t\t\tskip\n";
+						next;
+					}
 
                     foreach $mtag (@mtaglist) {
                         if($mtag eq 'CLah') {
@@ -857,12 +923,6 @@ sub spick {
     }
     
 
-    $cv->create('rectangle', $bb[0], $bb[1], $bb[2], $bb[3],
-            -fill=>'gray75', -outline=>'gray75', -tag=>"imark");
-    $cv->raise('imark');
-    $cv->raise($k);
-
-    $aim = $k;
 }
 
 
@@ -1212,75 +1272,31 @@ sub markno {
 sub mkplussym {
     my($refar, $cv, $k, $x, $y, $w, $h, $xtag) = @_;
     my $id1;
-    $id1 = $cv->create('rectangle',
-            $x,    $y+$h/3,
-            $x+$w, $y-$h*2/3,
-            -fill=>'white', -outline=>'black', -tag=>$xtag);
+
+    $id1 = $cv->createBitmap($x+14/2,$y,-bitmap=>'@./add14.xbm', -tag=>$xtag);
     $cv->raise($id1);
     push(@{$refar}, $id1);
-
-    $id1 = $cv->create('line',
-            $x+$w/2, $y+$h/3,
-            $x+$w/2, $y-$h*2/3);
-    $cv->raise($id1);
-    push(@{$refar}, $id1);
-
-    $id1 = $cv->create('line',
-            $x, 	$y+$h/3-$h/2,
-            $x+$w, 	$y+$h/3-$h/2);
-    $cv->raise($id1);
-    push(@{$refar}, $id1);
-
 }
 
 sub mkcrosssym {
     my($refar, $cv, $k, $x, $y, $w, $h, $xtag) = @_;
     my $id1;
-    $id1 = $cv->create('rectangle',
-            $x,    $y+$h/3,
-            $x+$w, $y-$h*2/3,
-            -fill=>'white', -outline=>'black', -tag=>$xtag);
-    $cv->raise($id1);
-    push(@{$refar}, $id1);
 
-    $id1 = $cv->create('line',
-            $x,    $y+$h/3,
-            $x+$w, $y-$h*2/3);
-    $cv->raise($id1);
-    push(@{$refar}, $id1);
-
-    $id1 = $cv->create('line',
-            $x,    $y-$h*2/3,
-            $x+$w, $y+$h/3);
+    $id1 = $cv->createBitmap($x+14/2,$y,-bitmap=>'@./clear14.xbm', -tag=>$xtag);
     $cv->raise($id1);
     push(@{$refar}, $id1);
 }
+
+my $bx;
 
 sub mkupsym {
     my($refar, $cv, $k, $x, $y, $w, $h, $xtag) = @_;
     my $id1;
-    $id1 = $cv->create('rectangle',
-            $x,    $y+$h/3,
-            $x+$w, $y-$h*2/3,
-            -fill=>'white', -outline=>'black', -tag=>$xtag);
-    $cv->raise($id1);
-    push(@{$refar}, $id1);
 
-    $id1 = $cv->create('line',
-            $x+$w/2, $y+$h/3,
-            $x+$w/2, $y-$h*2/3);
-    $cv->raise($id1);
-    push(@{$refar}, $id1);
-
-    $id1 = $cv->create('line',
-            $x,      $y+$h/3-$h/2,
-            $x+$w/2, $y-$h*2/3,
-            $x+$w,   $y+$h/3-$h/2
-            );
+    $id1 = $cv->create('bitmap', $x+14/2,$y,-bitmap=>'@./up14.xbm',-tags=>$xtag);
     $cv->raise($id1);
     push(@{$refar}, $id1);
 }
-
 
 
 my $__n;
